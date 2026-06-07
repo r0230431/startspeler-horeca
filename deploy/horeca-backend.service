@@ -1,0 +1,15 @@
+[Unit]
+Description=Horeca Backend (Ktor)
+After=network.target
+
+[Service]
+Type=simple
+User=administrator
+WorkingDirectory=/opt/horeca
+EnvironmentFile=/etc/horeca.env
+ExecStart=/usr/bin/java -jar /opt/horeca/backend-all.jar
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
