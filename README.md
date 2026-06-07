@@ -40,6 +40,30 @@ in your IDE’s toolbar or run it directly from the terminal:
   .\gradlew.bat :composeApp:run
   ```
 
+### Build and Run the Backend
+
+The backend reads its database and JWT settings through Ktor configuration in
+[`backend/src/main/resources/application.conf`](./backend/src/main/resources/application.conf).
+Those keys are resolved from environment variables, which keeps local and production
+configuration aligned.
+
+- Store local secrets in `backend/.env`.
+- Inject those values into your backend run configuration in the IDE, or export them
+  in your terminal session before starting the backend.
+- Production already uses the same model through `deploy/horeca-backend.service`
+  and its `EnvironmentFile`.
+
+Run the backend from the terminal:
+
+- on macOS/Linux
+  ```shell
+  ./gradlew :backend:run
+  ```
+- on Windows
+  ```shell
+  .\gradlew.bat :backend:run
+  ```
+
 ### Build and Run Web Application
 
 To build and run the development version of the web app, use the run configuration from the run widget

@@ -12,6 +12,7 @@ import com.startspeler.horeca.database.tables.PaymentsTable
 import com.startspeler.horeca.database.tables.ProductsTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import io.ktor.server.config.ApplicationConfig
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -21,8 +22,8 @@ import javax.sql.DataSource
 
 object DatabaseFactory {
 
-    fun init() {
-        Database.connect(createDataSource())
+    fun init(appConfig: ApplicationConfig) {
+        Database.connect(createDataSource(appConfig))
 
         // Generate tables if they do not already exist in the database
         transaction {
@@ -41,20 +42,20 @@ object DatabaseFactory {
         }
     }
 
-    private fun createDataSource(): DataSource {
-        val host = System.getenv("DB_HOST") ?: "localhost"
-        val port = System.getenv("DB_PORT") ?: "3306"
-        val dbName = System.getenv("DB_NAME") ?: "startspeler_horeca"
+    private fun createDataSource(appConfig: ApplicationConfig): DataSource {
+        val host = appConfig.stringOrNull("db.host") ?: "localhost"
+        val port = appConfig.stringOrNull("db.port") ?: "3306"
+        val dbName = appConfig.stringOrNull("db.name") ?: "startspeler_horeca"
 
-        val config = HikariConfig().apply {
-            driverClassName = System.getenv("DB_DRIVER") ?: "com.mysql.cj.jdbc.Driver"
-            jdbcUrl = System.getenv("DB_URL")
+        val hikariConfig = HikariConfig().apply {
+            driverClassName = appConfig.stringOrNull("db.driver") ?: "com.mysql.cj.jdbc.Driver"
+            jdbcUrl = appConfig.stringOrNull("db.url")
                 ?: "jdbc:mysql://$host:$port/$dbName?useSSL=false&allowPublicKeyRetrieval=true&preserveInstants=false"
-            username = System.getenv("DB_USER") ?: "root"
-            password = System.getenv("DB_PASSWORD") ?: ""
+            username = appConfig.stringOrNull("db.user") ?: "root"
+            password = appConfig.stringOrNull("db.password") ?: ""
 
-            maximumPoolSize = (System.getenv("DB_MAX_POOL_SIZE") ?: "10").toInt()
-            minimumIdle = (System.getenv("DB_MIN_IDLE") ?: "2").toInt()
+            maximumPoolSize = appConfig.intOrNull("db.maxPoolSize") ?: 10
+            minimumIdle = appConfig.intOrNull("db.minIdle") ?: 2
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
 
@@ -66,8 +67,14 @@ object DatabaseFactory {
             validate()
         }
 
-        return HikariDataSource(config)
+        return HikariDataSource(hikariConfig)
     }
+
+    private fun ApplicationConfig.stringOrNull(path: String): String? =
+        propertyOrNull(path)?.getString()?.takeIf { it.isNotBlank() }
+
+    private fun ApplicationConfig.intOrNull(path: String): Int? =
+        stringOrNull(path)?.toIntOrNull()
 
     suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO) {
